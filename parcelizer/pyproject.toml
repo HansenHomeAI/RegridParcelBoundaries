@@ -1,0 +1,27 @@
+[project]
+name = "parcelizer"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Codex",email = "codex@openai.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "openai",
+    "httpx",
+    "pillow",
+    "pytesseract",
+    "shapely",
+    "geopandas",
+    "flask",
+    "aiofiles",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[project.scripts]
+parcelizer = "parcelizer.cli:main"
