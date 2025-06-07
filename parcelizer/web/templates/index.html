@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parcelizer - Parcel Boundary Extraction</title>
+    <link rel="stylesheet" href="{{ url_for('static_files', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin=""/>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🗺️ Parcelizer</h1>
+            <p>Local-first parcel boundary extraction tool</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <h2>Upload Parcel Map</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag & drop your parcel map here or <span class="browse-link">browse files</span></p>
+                        <p class="file-types">Supports: PNG, JPEG, PDF, TIFF</p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.pdf,.tiff,.bmp" hidden>
+                </div>
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill"></div>
+                </div>
+            </section>
+
+            <!-- Coordinates Section -->
+            <section class="coordinates-section">
+                <h2>Or Enter Coordinates</h2>
+                <div class="input-group">
+                    <input type="text" id="coordinatesInput" placeholder="Enter coordinates (lat, lon) e.g., 37.7749, -122.4194">
+                    <button id="processCoordinates" class="btn-primary">Process Coordinates</button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>Extracted Information</h2>
+                <div id="resultsContent"></div>
+            </section>
+
+            <!-- Map Section -->
+            <section class="map-section" id="mapSection" style="display: none;">
+                <h2>Interactive Map</h2>
+                <div id="map"></div>
+            </section>
+
+            <!-- Error Section -->
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="{{ url_for('static_files', filename='js/app.js') }}"></script>
+</body>
+</html> 
