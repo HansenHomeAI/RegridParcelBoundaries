@@ -8,6 +8,12 @@ from typing import List, Union, BinaryIO
 from PIL import Image
 import pytesseract
 
+try:
+    from pdf2image import convert_from_bytes
+    PDF2IMAGE_AVAILABLE = True
+except ImportError:
+    PDF2IMAGE_AVAILABLE = False
+
 
 class ImageProcessor:
     """Handles image processing for parcel maps."""
@@ -37,19 +43,22 @@ class ImageProcessor:
     
     def _process_pdf(self, pdf_data: bytes) -> List[Image.Image]:
         """Process PDF file and extract images from each page."""
-        # For now, we'll use a simple approach
-        # In a production system, you'd want to use pdf2image or similar
+        if not PDF2IMAGE_AVAILABLE:
+            raise NotImplementedError(
+                "PDF processing requires pdf2image. Install with: pip install pdf2image"
+            )
+        
         try:
-            # Try to open as image first (some PDFs are just wrapped images)
+            # First try to open as image (some PDFs are just wrapped images)
             image = Image.open(io.BytesIO(pdf_data))
             return [image]
         except Exception:
-            # If that fails, we need a proper PDF processor
-            # For now, raise an error with helpful message
-            raise NotImplementedError(
-                "PDF processing requires additional setup. "
-                "Please convert your PDF to PNG/JPEG first."
-            )
+            # Use pdf2image to convert PDF pages to images
+            try:
+                images = convert_from_bytes(pdf_data, dpi=200, fmt='PNG')
+                return images
+            except Exception as e:
+                raise ValueError(f"Failed to process PDF: {e}")
     
     def _process_image(self, image_data: bytes) -> List[Image.Image]:
         """Process image file."""
