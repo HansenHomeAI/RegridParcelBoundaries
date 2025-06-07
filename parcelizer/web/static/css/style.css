@@ -217,6 +217,21 @@ section h2 {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+.parcel-popup h4 {
+    margin: 0 0 8px 0;
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+.parcel-popup p {
+    margin: 4px 0;
+    font-size: 0.9rem;
+}
+
+.parcel-popup strong {
+    color: #333;
+}
+
 /* Error messages */
 .error-message {
     background: #fee;

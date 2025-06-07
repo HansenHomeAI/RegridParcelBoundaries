@@ -95,6 +95,11 @@ class ParcelizerApp {
             if (result.success) {
                 this.displayResults(result.results);
                 this.showSuccess(result.message);
+                
+                // Display parcel boundaries on map if available
+                if (result.map_data && result.map_data.features.length > 0) {
+                    this.displayParcelBoundaries(result.map_data);
+                }
             } else {
                 this.showError(result.error || 'Upload failed');
             }
@@ -173,8 +178,15 @@ class ParcelizerApp {
                 html += `<p><strong>State:</strong> ${result.state}</p>`;
             }
             
-            if (result.raw_response) {
-                html += `<details><summary>Raw Response</summary><pre>${result.raw_response}</pre></details>`;
+            // Show boundary status
+            if (result.has_boundary) {
+                html += `<p><strong>✓ Parcel Boundary:</strong> Found (${result.vertices_count} vertices)</p>`;
+                html += `<p><strong>Parcel ID:</strong> ${result.parcel_id}</p>`;
+            } else {
+                html += `<p><strong>✗ Parcel Boundary:</strong> Not found</p>`;
+                if (result.error) {
+                    html += `<p><em>Error: ${result.error}</em></p>`;
+                }
             }
             
             resultItem.innerHTML = html;
@@ -202,7 +214,6 @@ class ParcelizerApp {
 
     initMap(lat, lon) {
         const mapSection = document.getElementById('mapSection');
-        const mapDiv = document.getElementById('map');
         
         // Clear existing map
         if (this.map) {
@@ -222,6 +233,81 @@ class ParcelizerApp {
             .addTo(this.map)
             .bindPopup(`Coordinates: ${lat}, ${lon}`)
             .openPopup();
+        
+        mapSection.style.display = 'block';
+    }
+
+    displayParcelBoundaries(mapData) {
+        const mapSection = document.getElementById('mapSection');
+        
+        // Clear existing map
+        if (this.map) {
+            this.map.remove();
+        }
+        
+        // Determine initial center and zoom
+        let center = [39.8283, -98.5795]; // Center of US as default
+        let zoom = 4;
+        
+        if (mapData.center) {
+            center = mapData.center;
+            zoom = 15;
+        }
+        
+        // Create new map
+        this.map = L.map('map').setView(center, zoom);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.map);
+        
+        // Add parcel boundaries
+        const geoJsonLayer = L.geoJSON(mapData, {
+            style: {
+                color: '#3388ff',
+                weight: 3,
+                opacity: 0.8,
+                fillColor: '#3388ff',
+                fillOpacity: 0.2
+            },
+            onEachFeature: (feature, layer) => {
+                // Create popup content
+                const props = feature.properties;
+                let popupContent = '<div class="parcel-popup">';
+                
+                if (props.parcel_id) {
+                    popupContent += `<h4>Parcel ${props.parcel_id}</h4>`;
+                }
+                
+                if (props.apn) {
+                    popupContent += `<p><strong>APN:</strong> ${props.apn}</p>`;
+                }
+                
+                if (props.address) {
+                    popupContent += `<p><strong>Address:</strong> ${props.address}</p>`;
+                }
+                
+                if (props.county) {
+                    popupContent += `<p><strong>County:</strong> ${props.county}</p>`;
+                }
+                
+                if (props.state) {
+                    popupContent += `<p><strong>State:</strong> ${props.state}</p>`;
+                }
+                
+                popupContent += '</div>';
+                
+                layer.bindPopup(popupContent);
+            }
+        }).addTo(this.map);
+        
+        // Fit map to show all parcels
+        if (mapData.features.length > 0) {
+            this.map.fitBounds(geoJsonLayer.getBounds(), {
+                padding: [20, 20]
+            });
+        }
         
         mapSection.style.display = 'block';
     }

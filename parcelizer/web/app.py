@@ -1,6 +1,7 @@
 """Flask web application for parcelizer."""
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Dict, Any
 
@@ -10,6 +11,7 @@ from werkzeug.utils import secure_filename
 from ..core.config import config
 from ..core.image_processor import ImageProcessor
 from ..core.vision_extractor import VisionExtractor, ParcelInfo
+from ..core.pipeline import ParcelPipeline
 
 
 def create_app() -> Flask:
@@ -24,6 +26,10 @@ def create_app() -> Flask:
     # Initialize processors
     image_processor = ImageProcessor()
     vision_extractor = VisionExtractor()
+    
+    # Check for demo mode from environment or query parameter
+    demo_mode = os.getenv('DEMO_MODE', 'false').lower() == 'true'
+    pipeline = ParcelPipeline(demo_mode=demo_mode)
     
     @app.route('/')
     def index() -> str:
@@ -44,35 +50,51 @@ def create_app() -> Flask:
             if not image_processor.is_supported_format(file.filename):
                 return jsonify({'error': 'Unsupported file format'}), 400
             
-            # Process the uploaded file
+            # Process the uploaded file through complete pipeline
             images = image_processor.process_uploaded_file(file, file.filename)
             
-            # Extract parcel information using vision API
+            # Process through pipeline (vision + regrid)
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                parcel_info_list = loop.run_until_complete(
-                    vision_extractor.extract_from_images(images)
+                parcel_results = loop.run_until_complete(
+                    pipeline.process_images(images)
                 )
             finally:
                 loop.close()
             
             # Return results
             results = []
-            for i, parcel_info in enumerate(parcel_info_list):
-                results.append({
+            map_data = pipeline.get_map_data(parcel_results)
+            
+            for i, result in enumerate(parcel_results):
+                result_data = {
                     'image_index': i,
-                    'apn': parcel_info.apn,
-                    'address': parcel_info.address,
-                    'county': parcel_info.county,
-                    'state': parcel_info.state,
-                    'raw_response': parcel_info.raw_response
-                })
+                    'apn': result.vision_info.apn,
+                    'address': result.vision_info.address,
+                    'county': result.vision_info.county,
+                    'state': result.vision_info.state,
+                    'success': result.success,
+                    'error': result.error
+                }
+                
+                # Add boundary info if available
+                if result.boundary:
+                    result_data.update({
+                        'parcel_id': result.boundary.parcel_id,
+                        'vertices_count': len(result.boundary.vertices) if result.boundary.vertices else 0,
+                        'has_boundary': True
+                    })
+                else:
+                    result_data['has_boundary'] = False
+                
+                results.append(result_data)
             
             return jsonify({
                 'success': True,
                 'results': results,
-                'message': f'Processed {len(images)} image(s)'
+                'map_data': map_data,
+                'message': f'Processed {len(images)} image(s) with {len([r for r in parcel_results if r.success])} successful boundary lookups'
             })
             
         except Exception as e:
